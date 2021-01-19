@@ -8,7 +8,7 @@ On your dokku server:
 
 ### dokku >= 0.4.0
 ```sh
-sudo dokku plugin:install https://github.com/CreativeGS/dokku-php-newrelic
+sudo dokku plugin:install https://github.com/estrados/dokku-newrelic
 ```
 
 ## Usage
