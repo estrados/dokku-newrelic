@@ -1,0 +1,6 @@
+[plugin]
+name = "dokku-php-newrelic"
+description = "Install Newrelic for PHP setups"
+version = "0.4.0"
+website_url = "https://github.com/estrados/dokku-newrelic"
+[plugin.config]

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+APP="$1"; IMAGE="dokku/$APP"
+echo "-----> Installing Newrelic ..."
+
+DIR=/app
+
+COMMAND=$(cat <<EOF
+export DEBIAN_FRONTEND=noninteractive
+
+echo "-----> NewRelic enabled status in ENV: \$NEW_RELIC_ENABLED"
+echo "-----> License in ENV: \$NEW_RELIC_LICENSE_KEY"
+echo "-----> App Name in ENV: \$NEW_RELIC_APP_NAME"
+
+if ["\$NEW_RELIC_ENABLED" == "true"]
+then
+  echo "-----> wgetting newrelic-daemon v6.3.0.161 from https://download.newrelic.com/debian/dists/newrelic/non-free/binary-amd64/newrelic-daemon_6.3.0.161_amd64.deb"
+  wget -L https://download.newrelic.com/debian/dists/newrelic/non-free/binary-amd64/newrelic-daemon_6.3.0.161_amd64.deb
+
+  echo "-----> wgetting newrelic-php5-common v6.3.0.161 from https://download.newrelic.com/debian/dists/newrelic/non-free/binary-amd64/newrelic-php5-common_6.3.0.161_all.deb"
+  wget -L https://download.newrelic.com/debian/dists/newrelic/non-free/binary-amd64/newrelic-php5-common_6.3.0.161_all.deb
+
+  echo "-----> wgetting newrelic-php5 v6.3.0.161 from https://download.newrelic.com/debian/dists/newrelic/non-free/binary-amd64/newrelic-php5_6.3.0.161_amd64.deb"
+  wget -L https://download.newrelic.com/debian/dists/newrelic/non-free/binary-amd64/newrelic-php5_6.3.0.161_amd64.deb
+
+  echo "-----> Installing NewRelic packages"
+  dpkg -i newrelic-php5-common_6.3.0.161_all.deb newrelic-daemon_6.3.0.161_amd64.deb newrelic-php5_6.3.0.161_amd64.deb
+
+  echo "-----> Setting NewRelic app name and licence key from environment"
+  echo newrelic-php5 newrelic-php5/application-name string "\$NEW_RELIC_APP_NAME" | debconf-set-selections
+  echo newrelic-php5 newrelic-php5/license-key string "\$NEW_RELIC_LICENSE_KEY" | debconf-set-selections
+
+  sleep 1 # wait so that docker run has not exited before docker attach
+else
+  echo "-----> Skipping NewRelic installation since it is not enabled."
+fi
+EOF
+)
+
+id=$(docker run -d $IMAGE /bin/bash -e -c "$COMMAND")
+echo "wait for docker to run"
+test $(docker wait $id) -eq 0
+echo "docker run"
+docker commit $id $IMAGE > /dev/null
